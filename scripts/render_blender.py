@@ -159,6 +159,11 @@ scene.render.resolution_x = 400
 scene.render.resolution_y = 400
 scene.render.resolution_percentage = 100
 
+# Background
+bpy.context.scene.render.dither_intensity = 0.0
+bpy.context.scene.render.film_transparent = True
+
+
 # Data to store in JSON file
 out_data = {
     'camera_angle_x': bpy.data.objects['Camera'].data.angle_x,
