@@ -6,6 +6,7 @@
 #
 
 import argparse, sys, os, json
+import copy 
 parser = argparse.ArgumentParser(description='Renders given obj file by rotation a camera around it.')
 parser.add_argument('--views', type=int, default=1,
                     help='number of views to be rendered')
@@ -250,6 +251,17 @@ for i in range(args.views):
 
 with open(obj_save_dir+ '/' + 'transforms.json', 'w') as out_file:
     json.dump(out_data, out_file, indent=4)
+
+
+test_json = copy.deepcopy(out_data)
+test_json['frames'] = test_json['frames'][-4:]
+
+with open(os.path.join(obj_save_dir,'transforms_test.json'), 'w') as f:
+    json.dump(test_json, f, indent=4) 
+
+with open(os.path.join(obj_save_dir,'transforms_val.json'), 'w') as f:
+    json.dump(test_json, f, indent=4) 
+
 
 # zip image file, depth files and normals
 import shutil
