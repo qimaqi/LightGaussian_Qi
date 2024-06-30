@@ -29,7 +29,7 @@ from pathlib import Path
 from plyfile import PlyData, PlyElement
 from utils.sh_utils import SH2RGB
 from scene.gaussian_model import BasicPointCloud
-
+import trimesh 
 
 class CameraInfo(NamedTuple):
     uid: int
@@ -126,6 +126,31 @@ def readColmapCameras(cam_extrinsics, cam_intrinsics, images_folder):
         cam_infos.append(cam_info)
     sys.stdout.write("\n")
     return cam_infos
+
+def fetchObj(path):
+    print("##### loading pointcloud from mesh object ######")
+    mesh = trimesh.load(path)
+    mesh.visual = mesh.visual.to_color()
+    colors = mesh.visual.vertex_colors / 255.0
+    colors_no_alpha = colors[:, :3]
+    positions = mesh.vertices
+    normals = mesh.vertex_normals
+    positions = np.array(positions)
+    colors = np.array(colors_no_alpha)
+    normals = np.array(normals)
+    # print("vertex_color", vertex_color)
+    # print("normals", normals)
+    # print("points_3d", points_3d)
+    # colors_no_alpha = vertex_color[:, :3]
+    # vertices = plydata["vertex"]
+    # positions = np.vstack([vertices["x"], vertices["y"], vertices["z"]]).T
+    # colors = np.vstack([vertices["red"], vertices["green"], vertices["blue"]]).T / 255.0
+    # normals = np.vstack([vertices["nx"], vertices["ny"], vertices["nz"]]).T
+    print("positions", positions.shape, "colors", colors.shape, "normals", normals.shape)
+
+    storePly(path.replace('point_cloud.obj','points3d.ply'), positions, colors * 255)
+
+    return BasicPointCloud(points=positions, colors=colors, normals=normals)
 
 
 def fetchPly(path):
@@ -295,7 +320,8 @@ def readNerfSyntheticInfo(path, white_background, eval, extension=".png"):
     nerf_normalization = getNerfppNorm(train_cam_infos)
 
     ply_path = os.path.join(path, "points3d.ply")
-    if not os.path.exists(ply_path):
+    mesh_path = os.path.join(path, "point_cloud.obj")
+    if not os.path.exists(mesh_path):
         # Since this data set has no colmap data, we start with random points
         num_pts = 100_000
         print(f"Generating random point cloud ({num_pts})...")
@@ -306,12 +332,15 @@ def readNerfSyntheticInfo(path, white_background, eval, extension=".png"):
         pcd = BasicPointCloud(
             points=xyz, colors=SH2RGB(shs), normals=np.zeros((num_pts, 3))
         )
-
         storePly(ply_path, xyz, SH2RGB(shs) * 255)
-    try:
-        pcd = fetchPly(ply_path)
-    except:
-        pcd = None
+    else:
+        pcd = fetchObj(mesh_path)
+    # try:
+    #     pcd = fetchObj(mesh_path)
+    #     print("pcd", pcd.points.shape, pcd.colors.shape, pcd.normals.shape)
+    # except:
+        
+    #     pcd = None
 
     scene_info = SceneInfo(
         point_cloud=pcd,
