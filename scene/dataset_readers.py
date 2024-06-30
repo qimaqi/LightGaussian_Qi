@@ -282,7 +282,7 @@ def readCamerasFromTransforms(path, transformsfile, white_background, extension=
                     image_name = Path(cam_name).stem
 
                     # zip directly 
-                    image_data = zip_ref.read(image_name)
+                    image_data = zip_ref.read(image_name + extension)
                     image_file = BytesIO(image_data)
                     
 
