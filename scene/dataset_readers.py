@@ -30,9 +30,12 @@ from plyfile import PlyData, PlyElement
 from utils.sh_utils import SH2RGB
 from scene.gaussian_model import BasicPointCloud
 import trimesh 
+<<<<<<< HEAD
+=======
 import zipfile
 from io import BytesIO
 
+>>>>>>> bf19ce804d089e31d69d746ff318577888a3ec02
 
 class CameraInfo(NamedTuple):
     uid: int
@@ -162,6 +165,22 @@ def fetchPly(path):
     positions = np.vstack([vertices["x"], vertices["y"], vertices["z"]]).T
     colors = np.vstack([vertices["red"], vertices["green"], vertices["blue"]]).T / 255.0
     normals = np.vstack([vertices["nx"], vertices["ny"], vertices["nz"]]).T
+    return BasicPointCloud(points=positions, colors=colors, normals=normals)
+
+def fetchObj(path):
+    mesh = trimesh.load(path)
+    mesh.visual = mesh.visual.to_color()
+    colors = mesh.visual.vertex_colors / 255.0
+    positions = mesh.vertices
+    normals = mesh.vertex_normals
+    # print("vertex_color", vertex_color)
+    # print("normals", normals)
+    # print("points_3d", points_3d)
+    # colors_no_alpha = vertex_color[:, :3]
+    # vertices = plydata["vertex"]
+    # positions = np.vstack([vertices["x"], vertices["y"], vertices["z"]]).T
+    # colors = np.vstack([vertices["red"], vertices["green"], vertices["blue"]]).T / 255.0
+    # normals = np.vstack([vertices["nx"], vertices["ny"], vertices["nz"]]).T
     return BasicPointCloud(points=positions, colors=colors, normals=normals)
 
 

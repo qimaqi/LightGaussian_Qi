@@ -4,6 +4,7 @@ import time
 from joblib import Parallel, delayed
 import argparse
 import trimesh 
+from plyfile import PlyData, PlyElement
 
 
 #
@@ -47,7 +48,7 @@ def gen_obj(model_root_dir, cat_id, obj_id):
 	obj_save_dir = os.path.join(render_root_dir, cat_id, obj_id)
 	os.makedirs(obj_save_dir, exist_ok=True)
 
-	if os.path.exists(os.path.join(obj_save_dir, "rendering_metadata.txt")):
+	if os.path.exists(os.path.join(obj_save_dir, 'image.zip')):
 		print("Exist!!!, skip %s %s" % (cat_id, obj_id))
 	else:
 		print("Start %s %s" % (cat_id, obj_id))
@@ -55,17 +56,6 @@ def gen_obj(model_root_dir, cat_id, obj_id):
 			# save to  point cloud
 			mesh = trimesh.load(objpath, force='mesh')
 			mesh.export(os.path.join(obj_save_dir, "point_cloud.obj"))
-			# mesh.visual = mesh.visual.to_color()
-			# vertex_color = mesh.visual.vertex_colors
-			# points_3d = mesh.vertices
-			# normals = mesh.vertex_normals
-			# # print("vertex_color", vertex_color)
-			# # print("normals", normals)
-			# # print("points_3d", points_3d)
-			# colors_no_alpha = vertex_color[:, :3]
-			# mesh.export('point_cloud.ply', include_attributes=True, vertex_normal=True)
-			# # mesh.export(os.path.join(obj_save_dir, "point_cloud.ply"))
-			# print("pointcloud desc", mesh.vertices.shape,  mesh.vertices.min(), mesh.vertices.max())
 
 			# render to 2D
 			os.system(FLAGS.blender_location + ' --background --python render_blender.py -- --views %d --obj_save_dir %s %s ' % (72, obj_save_dir , objpath))
@@ -78,7 +68,7 @@ def gen_obj(model_root_dir, cat_id, obj_id):
 		print("Finished %s %s"%(cat_id, obj_id))
 #
 
-for filename in os.listdir(filelist_dir):
+for filename in sorted(os.listdir(filelist_dir)):
 	if filename.endswith(".lst"):
 		cat_id = filename.split(".")[0]
 		file = os.path.join(filelist_dir, filename)
@@ -91,7 +81,7 @@ for filename in os.listdir(filelist_dir):
 
 		model_root_dir_lst = [model_root_dir for i in range(len(lst))]
 		cat_id_lst = [cat_id for i in range(len(lst))]
-		with Parallel(n_jobs=5) as parallel:
+		with Parallel(n_jobs=8) as parallel:
 			parallel(delayed(gen_obj)(model_root_dir, cat_id, obj_id) for
 					 model_root_dir, cat_id, obj_id in
 					 zip(model_root_dir_lst, cat_id_lst, lst))
