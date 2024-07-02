@@ -164,17 +164,6 @@ scene.render.resolution_percentage = 100
 bpy.context.scene.render.dither_intensity = 0.0
 bpy.context.scene.render.film_transparent = True
 
-# GPU
-# import bpy
-# bpy.context.scene.render.engine = 'CYCLES'
-# # Enable Cycles add-on if not already enabled
-# bpy.ops.preferences.addon_enable(module="cycles")
-
-# # Set the device_type
-# cycles_preferences = bpy.context.preferences.addons['cycles'].preferences
-# cycles_preferences.compute_device_type = 'CUDA'
-# bpy.context.scene.cycles.device = 'GPU'
-
 
 # Data to store in JSON file
 out_data = {

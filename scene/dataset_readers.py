@@ -30,6 +30,12 @@ from plyfile import PlyData, PlyElement
 from utils.sh_utils import SH2RGB
 from scene.gaussian_model import BasicPointCloud
 import trimesh 
+<<<<<<< HEAD
+=======
+import zipfile
+from io import BytesIO
+
+>>>>>>> bf19ce804d089e31d69d746ff318577888a3ec02
 
 class CameraInfo(NamedTuple):
     uid: int
@@ -126,6 +132,31 @@ def readColmapCameras(cam_extrinsics, cam_intrinsics, images_folder):
         cam_infos.append(cam_info)
     sys.stdout.write("\n")
     return cam_infos
+
+def fetchObj(path):
+    print("##### loading pointcloud from mesh object ######")
+    mesh = trimesh.load(path)
+    mesh.visual = mesh.visual.to_color()
+    colors = mesh.visual.vertex_colors / 255.0
+    colors_no_alpha = colors[:, :3]
+    positions = mesh.vertices
+    normals = mesh.vertex_normals
+    positions = np.array(positions)
+    colors = np.array(colors_no_alpha)
+    normals = np.array(normals)
+    # print("vertex_color", vertex_color)
+    # print("normals", normals)
+    # print("points_3d", points_3d)
+    # colors_no_alpha = vertex_color[:, :3]
+    # vertices = plydata["vertex"]
+    # positions = np.vstack([vertices["x"], vertices["y"], vertices["z"]]).T
+    # colors = np.vstack([vertices["red"], vertices["green"], vertices["blue"]]).T / 255.0
+    # normals = np.vstack([vertices["nx"], vertices["ny"], vertices["nz"]]).T
+    print("positions", positions.shape, "colors", colors.shape, "normals", normals.shape)
+
+    storePly(path.replace('point_cloud.obj','points3d.ply'), positions, colors * 255)
+
+    return BasicPointCloud(points=positions, colors=colors, normals=normals)
 
 
 def fetchPly(path):
@@ -243,53 +274,119 @@ def readCamerasFromTransforms(path, transformsfile, white_background, extension=
         fovx = contents["camera_angle_x"]
 
         frames = contents["frames"]
-        for idx, frame in enumerate(frames):
-            cam_name = os.path.join(path, frame["file_path"] + extension)
+        # read from zip files
+        zip_path = os.path.join(path, "image.zip")
+        
+        if os.path.exists(zip_path):
+            with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+                zip_contents = zip_ref.namelist()
+                print("zip_contents", zip_contents)
+ 
+                for idx, frame in enumerate(frames):
+                    cam_name = os.path.join(path, frame["file_path"] + extension)
 
-            # NeRF 'transform_matrix' is a camera-to-world transform
-            c2w = np.array(frame["transform_matrix"])
-            # change from OpenGL/Blender camera axes (Y up, Z back) to COLMAP (Y down, Z forward)
-            c2w[:3, 1:3] *= -1
+                    # NeRF 'transform_matrix' is a camera-to-world transform
+                    c2w = np.array(frame["transform_matrix"])
+                    # change from OpenGL/Blender camera axes (Y up, Z back) to COLMAP (Y down, Z forward)
+                    c2w[:3, 1:3] *= -1
 
-            # get the world-to-camera transform and set R, T
-            w2c = np.linalg.inv(c2w)
-            R = np.transpose(
-                w2c[:3, :3]
-            )  # R is stored transposed due to 'glm' in CUDA code
-            T = w2c[:3, 3]
+                    # get the world-to-camera transform and set R, T
+                    w2c = np.linalg.inv(c2w)
+                    R = np.transpose(
+                        w2c[:3, :3]
+                    )  # R is stored transposed due to 'glm' in CUDA code
+                    T = w2c[:3, 3]
 
-            image_path = os.path.join(path, cam_name)
-            image_name = Path(cam_name).stem
-            image = Image.open(image_path)
+                    image_path = os.path.join(path, cam_name)
+                    image_name = Path(cam_name).stem
 
-            im_data = np.array(image.convert("RGBA"))
+                    # zip directly 
+                    image_data = zip_ref.read(image_name + extension)
+                    image_file = BytesIO(image_data)
+                    
 
-            bg = np.array([1, 1, 1]) if white_background else np.array([0, 0, 0])
+                    image = Image.open(image_file)
 
-            norm_data = im_data / 255.0
-            arr = norm_data[:, :, :3] * norm_data[:, :, 3:4] + bg * (
-                1 - norm_data[:, :, 3:4]
-            )
-            image = Image.fromarray(np.array(arr * 255.0, dtype=np.byte), "RGB")
+                    im_data = np.array(image.convert("RGBA"))
 
-            fovy = focal2fov(fov2focal(fovx, image.size[0]), image.size[1])
-            FovY = fovy
-            FovX = fovx
+                    bg = np.array([1, 1, 1]) if white_background else np.array([0, 0, 0])
 
-            cam_infos.append(
-                CameraInfo(
-                    uid=idx,
-                    R=R,
-                    T=T,
-                    FovY=FovY,
-                    FovX=FovX,
-                    image=image,
-                    image_path=image_path,
-                    image_name=image_name,
-                    width=image.size[0],
-                    height=image.size[1],
+                    norm_data = im_data / 255.0
+                    arr = norm_data[:, :, :3] * norm_data[:, :, 3:4] + bg * (
+                        1 - norm_data[:, :, 3:4]
+                    )
+                    image = Image.fromarray(np.array(arr * 255.0, dtype=np.byte), "RGB")
+
+                    fovy = focal2fov(fov2focal(fovx, image.size[0]), image.size[1])
+                    FovY = fovy
+                    FovX = fovx
+
+                    cam_infos.append(
+                        CameraInfo(
+                            uid=idx,
+                            R=R,
+                            T=T,
+                            FovY=FovY,
+                            FovX=FovX,
+                            image=image,
+                            image_path=image_path,
+                            image_name=image_name,
+                            width=image.size[0],
+                            height=image.size[1],
+                        )
+                    )
+        else:
+            # no zip files
+            for idx, frame in enumerate(frames):
+                cam_name = os.path.join(path, frame["file_path"] + extension)
+
+                # NeRF 'transform_matrix' is a camera-to-world transform
+                c2w = np.array(frame["transform_matrix"])
+                # change from OpenGL/Blender camera axes (Y up, Z back) to COLMAP (Y down, Z forward)
+                c2w[:3, 1:3] *= -1
+
+                # get the world-to-camera transform and set R, T
+                w2c = np.linalg.inv(c2w)
+                R = np.transpose(
+                    w2c[:3, :3]
+                )  # R is stored transposed due to 'glm' in CUDA code
+                T = w2c[:3, 3]
+
+                image_path = os.path.join(path, cam_name)
+                image_name = Path(cam_name).stem
+
+
+
+                image = Image.open(image_path)
+
+                im_data = np.array(image.convert("RGBA"))
+
+                bg = np.array([1, 1, 1]) if white_background else np.array([0, 0, 0])
+
+                norm_data = im_data / 255.0
+                arr = norm_data[:, :, :3] * norm_data[:, :, 3:4] + bg * (
+                    1 - norm_data[:, :, 3:4]
                 )
-            )
+                image = Image.fromarray(np.array(arr * 255.0, dtype=np.byte), "RGB")
+
+                fovy = focal2fov(fov2focal(fovx, image.size[0]), image.size[1])
+                FovY = fovy
+                FovX = fovx
+
+                cam_infos.append(
+                    CameraInfo(
+                        uid=idx,
+                        R=R,
+                        T=T,
+                        FovY=FovY,
+                        FovX=FovX,
+                        image=image,
+                        image_path=image_path,
+                        image_name=image_name,
+                        width=image.size[0],
+                        height=image.size[1],
+                    )
+                )
 
     return cam_infos
 
@@ -311,7 +408,8 @@ def readNerfSyntheticInfo(path, white_background, eval, extension=".png"):
     nerf_normalization = getNerfppNorm(train_cam_infos)
 
     ply_path = os.path.join(path, "points3d.ply")
-    if not os.path.exists(ply_path):
+    mesh_path = os.path.join(path, "point_cloud.obj")
+    if not os.path.exists(mesh_path):
         # Since this data set has no colmap data, we start with random points
         num_pts = 100_000
         print(f"Generating random point cloud ({num_pts})...")
@@ -322,12 +420,15 @@ def readNerfSyntheticInfo(path, white_background, eval, extension=".png"):
         pcd = BasicPointCloud(
             points=xyz, colors=SH2RGB(shs), normals=np.zeros((num_pts, 3))
         )
-
         storePly(ply_path, xyz, SH2RGB(shs) * 255)
-    try:
-        pcd = fetchPly(ply_path)
-    except:
-        pcd = None
+    else:
+        pcd = fetchObj(mesh_path)
+    # try:
+    #     pcd = fetchObj(mesh_path)
+    #     print("pcd", pcd.points.shape, pcd.colors.shape, pcd.normals.shape)
+    # except:
+        
+    #     pcd = None
 
     scene_info = SceneInfo(
         point_cloud=pcd,
