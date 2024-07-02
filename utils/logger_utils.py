@@ -53,6 +53,7 @@ def training_report(
     scene: Scene,
     renderFunc,
     renderArgs,
+    gaussian_nums=0,
 ):
     if tb_writer:
         tb_writer.add_scalar("train_loss_patches/l1_loss", Ll1.item(), iteration)
@@ -71,6 +72,7 @@ def training_report(
             "lpips",
             "file_size",
             "elapsed",
+            "gaussian_nums",
         ]
         csv_path = os.path.join(scene.model_path, "metric.csv")
         # Check if the CSV file exists, if not, create it and write the header
@@ -175,6 +177,7 @@ def training_report(
                                 "lpips": lpips_test.item(),
                                 "file_size": file_size_mb,
                                 "elapsed": elapsed,
+                                "gaussian_nums": gaussian_nums,
                             }
                         )
 

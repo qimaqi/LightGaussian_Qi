@@ -130,12 +130,26 @@ def training(
             render_pkg["radii"],
         )
 
+        def isotropic_loss(scaling: torch.Tensor) -> torch.Tensor:
+            """
+            Computes loss enforcing isotropic scaling for the 3D Gaussians
+            """
+            mean_scaling = scaling.mean(dim=1, keepdim=True)
+            isotropic_diff = torch.abs(scaling - mean_scaling * torch.ones_like(scaling))
+            return isotropic_diff.mean()
+
+        iso_reg = isotropic_loss(gaussians.get_scaling)
+        iso_weight = 0.5 * (1 - iteration / opt.iterations)
+        iso_loss = iso_weight * iso_reg
+   
+
         # Loss
         gt_image = viewpoint_cam.original_image.cuda()
         Ll1 = l1_loss(image, gt_image)
         loss = (1.0 - opt.lambda_dssim) * Ll1 + opt.lambda_dssim * (
             1.0 - ssim(image, gt_image)
         )
+        loss += iso_loss
         loss.backward()
 
         iter_end.record()
@@ -164,10 +178,12 @@ def training(
                 scene,
                 render,
                 (pipe, background),
+                gaussian_nums=len(gaussians._xyz)
             )
 
             # Densification
             if iteration < opt.densify_until_iter:
+                # print("densification_interval", opt.densification_interval)
                 # Keep track of max radii in image-space for pruning
                 gaussians.max_radii2D[visibility_filter] = torch.max(
                     gaussians.max_radii2D[visibility_filter], radii[visibility_filter]
@@ -242,16 +258,16 @@ if __name__ == "__main__":
         default=[7_000, 30_000],
     )
     parser.add_argument(
-        "--save_iterations", nargs="+", type=int, default=[7_000, 30_000]
+        "--save_iterations", nargs="+", type=int, default=[23_000, 30_000]
     )
     parser.add_argument("--quiet", action="store_true")
     parser.add_argument(
-        "--checkpoint_iterations", nargs="+", type=int, default=[7_000, 30_000]
+        "--checkpoint_iterations", nargs="+", type=int, default=[23_000, 30_000]
     )
     parser.add_argument("--start_checkpoint", type=str, default=None)
 
     parser.add_argument(
-        "--prune_iterations", nargs="+", type=int, default=[16_000, 24_000]
+        "--prune_iterations", nargs="+", type=int, default=[16_000 , 24_000]
     )
     parser.add_argument("--prune_percent", type=float, default=0.5)
     parser.add_argument("--v_pow", type=float, default=0.1)
