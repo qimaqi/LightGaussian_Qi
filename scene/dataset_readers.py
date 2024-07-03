@@ -141,14 +141,7 @@ def fetchObj(path):
     positions = np.array(positions)
     colors = np.array(colors_no_alpha)
     normals = np.array(normals)
-    # print("vertex_color", vertex_color)
-    # print("normals", normals)
-    # print("points_3d", points_3d)
-    # colors_no_alpha = vertex_color[:, :3]
-    # vertices = plydata["vertex"]
-    # positions = np.vstack([vertices["x"], vertices["y"], vertices["z"]]).T
-    # colors = np.vstack([vertices["red"], vertices["green"], vertices["blue"]]).T / 255.0
-    # normals = np.vstack([vertices["nx"], vertices["ny"], vertices["nz"]]).T
+
     print("positions", positions.shape, "colors", colors.shape, "normals", normals.shape)
 
     storePly(path.replace('point_cloud.obj','points3d.ply'), positions, colors * 255)
@@ -164,21 +157,6 @@ def fetchPly(path):
     normals = np.vstack([vertices["nx"], vertices["ny"], vertices["nz"]]).T
     return BasicPointCloud(points=positions, colors=colors, normals=normals)
 
-def fetchObj(path):
-    mesh = trimesh.load(path)
-    mesh.visual = mesh.visual.to_color()
-    colors = mesh.visual.vertex_colors / 255.0
-    positions = mesh.vertices
-    normals = mesh.vertex_normals
-    # print("vertex_color", vertex_color)
-    # print("normals", normals)
-    # print("points_3d", points_3d)
-    # colors_no_alpha = vertex_color[:, :3]
-    # vertices = plydata["vertex"]
-    # positions = np.vstack([vertices["x"], vertices["y"], vertices["z"]]).T
-    # colors = np.vstack([vertices["red"], vertices["green"], vertices["blue"]]).T / 255.0
-    # normals = np.vstack([vertices["nx"], vertices["ny"], vertices["nz"]]).T
-    return BasicPointCloud(points=positions, colors=colors, normals=normals)
 
 
 def storePly(path, xyz, rgb):
@@ -390,6 +368,10 @@ def readCamerasFromTransforms(path, transformsfile, white_background, extension=
 
 def readNerfSyntheticInfo(path, white_background, eval, extension=".png"):
     print("Reading Training Transforms")
+    if not os.path.exists(os.path.join(path, "transforms_train.json")):
+        # rename the transforms.json to transforms_train.json
+        os.rename(os.path.join(path, "transforms.json"), os.path.join(path, "transforms_train.json"))
+
     train_cam_infos = readCamerasFromTransforms(
         path, "transforms_train.json", white_background, extension
     )
