@@ -22,31 +22,35 @@ parser.add_argument('--end_idx', type=int, default=2,
 
 args = parser.parse_args()
 
-gaussian_raw_save_path = '/usr/bmicnas02/data-biwi-01/ct_video_mae/omniobject3d/output_raw/'
-blender_renders_path = '/usr/bmicnas02/data-biwi-01/ct_video_mae/blender_renders/'
+blender_renders_path = '/cluster/work/cvl/qimaqi/ws_dataset/shapenet/ShapeNetCore.v1/render/'
+object_cat_path = '/cluster/work/cvl/qimaqi/3dv_gaussian/LightGaussian_Qi/scripts/filelists/'
+# task0: create all object and id list
 
-scenes_list = sorted(os.listdir(gaussian_raw_save_path))
+obj_total_path=[]
+for object_id_file in os.listdir(object_cat_path):
+    object_id = object_id_file.split('.')[0]
+    with open(os.path.join(object_cat_path, object_id_file), 'r') as f:
+        object_list = f.readlines()
+    object_list = [obj.strip() for obj in object_list]
+    for object_i in object_list:
+        obj_total_path.append(os.path.join(blender_renders_path, object_id, object_i))
 
-if  args.end_idx > len(scenes_list) or args.end_idx == -1:
-    args.end_idx = len(scenes_list)
+    
+obj_total_path = sorted(obj_total_path)
 
-print("total length of scenes_list", len(scenes_list))
-# scenes_list = scenes_list[::-1]
+if  args.end_idx > len(obj_total_path) or args.end_idx == -1:
+    args.end_idx = len(obj_total_path)
 
+print("total length of obj_total_path", len(scenes_list))
 sub_scenes_list = scenes_list[args.start_idx:args.end_idx]
 print("sub_scenes_list", sub_scenes_list)
 
 
-for scene_i in tqdm.tqdm(sub_scenes_list):
+for scene_i in tqdm.tqdm(obj_total_path):
     start_t = time.time()
     # in first time we run without active sampling
-    scene_class = scene_i.split('_')[:-1]
-    scene_class = '_'.join(scene_class)
-    scene_tgt_path = os.path.join(blender_renders_path, scene_class, scene_i, 'render')
-    point_cloud_path = os.path.join(gaussian_raw_save_path, scene_i ,'point_cloud', 'iteration_20000' , 'point_cloud.ply')
-    prune_output_dir = os.path.join(gaussian_raw_save_path, scene_i ,'lightning_output')
+    prune_output_dir = os.path.join(gaussian_raw_save_path, scene_i ,'light_gs')
     os.makedirs(prune_output_dir,exist_ok=True)
-
     # print(f"######## untar {scene_i} to {scene_tgt_path} ###############")
     # os.system(f'tar -xzvf /usr/bmicnas02/data-biwi-01/qimaqi_data/blender_renders/{scene_class}.tar.gz  --directory=/usr/bmicnas02/data-biwi-01/qimaqi_data/blender_renders/{scene_class}/ --strip-components=1 ./{scene_i}')
     port=6047
@@ -54,42 +58,7 @@ for scene_i in tqdm.tqdm(sub_scenes_list):
     prune_percent = 0.6 # start value
     print(f"######## processing {scene_i} ###############", scene_tgt_path, prune_output_dir)
 
-    os.system(f"python train_densify_prune.py -s {scene_tgt_path} -m {prune_output_dir} --eval --port {port} --prune_percent {prune_percent} --prune_decay 0.6") # --prune_iterations 20000
-
-    # data_dir = os.path.join(scene_tgt_path, 'render')
-    # with open(os.path.join(data_dir, 'transforms.json'), 'r') as fp:
-    #     meta = json.load(fp)
-
-    # train_json = copy.deepcopy(meta)
-    # test_json = copy.deepcopy(meta)
-
-    # train_json['frames'] = train_json['frames'][:-4]
-    # test_json['frames'] = test_json['frames'][-4:]
-
-    # for frame in train_json['frames']:
-    #     frame['file_path'] = os.path.join('images', frame['file_path'])
-    # for frame in test_json['frames']:
-    #     frame['file_path'] = os.path.join('images', frame['file_path'])
-
-    # with open(os.path.join(data_dir,'transforms_train.json'), 'w') as f:
-    #     json.dump(train_json, f, indent=4) 
-
-    # with open(os.path.join(data_dir,'transforms_test.json'), 'w') as f:
-    #     json.dump(test_json, f, indent=4) 
-
-    # with open(os.path.join(data_dir,'transforms_val.json'), 'w') as f:
-    #     json.dump(test_json, f, indent=4) 
-
-    # # # clean some files
-    # shutil.rmtree(os.path.join(data_dir, 'depths'))
-    # shutil.rmtree(os.path.join(data_dir, 'normals'))
-
-    # # split transsform
-
-    # # prepare config files
-    # print()
-    # print(f"######## processing {scene_i} ###############")
-    # print()
-    # os.system(f'python main.py fit --data.path {scene_tgt_path}/render/ -n {scene_i} --max_steps 20_000 --output {output_dir} --trainer.enable_progress_bar=False --trainer.check_val_every_n_epoch=100')
-    # print(f"######## finish {scene_i} cost ###############", time.time()-start_t)
-    # # shutil.rmtree(os.path.join('.', 'sbatch_log', 'debug.log'))
+    os.system(f"python train_densify_prune.py -s {scene_i} -m {prune_output_dir} --eval --port {port} --prune_percent {prune_percent} --prune_decay 0.6") 
+    
+    # get some log
+    

@@ -30,12 +30,9 @@ from plyfile import PlyData, PlyElement
 from utils.sh_utils import SH2RGB
 from scene.gaussian_model import BasicPointCloud
 import trimesh 
-<<<<<<< HEAD
-=======
 import zipfile
 from io import BytesIO
 
->>>>>>> bf19ce804d089e31d69d746ff318577888a3ec02
 
 class CameraInfo(NamedTuple):
     uid: int
