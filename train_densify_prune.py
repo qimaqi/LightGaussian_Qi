@@ -72,6 +72,7 @@ def training(
     first_iter += 1
     gaussians.scheduler = ExponentialLR(gaussians.optimizer, gamma=0.97)
     for iteration in range(first_iter, opt.iterations + 1):
+        # network_gui.conn = None
         if network_gui.conn == None:
             network_gui.try_connect()
         while network_gui.conn != None:
@@ -272,6 +273,7 @@ if __name__ == "__main__":
     parser.add_argument("--prune_percent", type=float, default=0.5)
     parser.add_argument("--v_pow", type=float, default=0.1)
     parser.add_argument("--prune_decay", type=float, default=0.8)
+    parser.add_argument("--scale_reg", type=bool, default=True)
     args = parser.parse_args(sys.argv[1:])
     args.save_iterations.append(args.iterations)
 

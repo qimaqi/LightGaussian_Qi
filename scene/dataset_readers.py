@@ -132,18 +132,92 @@ def readColmapCameras(cam_extrinsics, cam_intrinsics, images_folder):
 
 def fetchObj(path):
     print("##### loading pointcloud from mesh object ######")
+    # mesh = trimesh.load(path)
+    # mesh.visual = mesh.visual.to_color()
+    # colors = mesh.visual.vertex_colors / 255.0
+    # colors_no_alpha = colors[:, :3]
+    # positions = mesh.vertices
+    # normals = mesh.vertex_normals
+    # positions = np.array(positions)
+    # colors = np.array(colors_no_alpha)
+    # normals = np.array(normals)
+
     mesh = trimesh.load(path)
-    mesh.visual = mesh.visual.to_color()
-    colors = mesh.visual.vertex_colors / 255.0
-    colors_no_alpha = colors[:, :3]
-    positions = mesh.vertices
-    normals = mesh.vertex_normals
+    num_points = 5000
+    points, face_index = trimesh.sample.sample_surface(mesh, num_points)
+    face_normals = mesh.face_normals
+    # Retrieve the normals for the sampled points based on face index
+    sampled_normals = face_normals[face_index]
+    try:
+        mesh.visual = mesh.visual.to_color()
+        vertex_colors = mesh.visual.vertex_colors[:, :3]  # Ignore the alpha channel
+        sampled_colors = np.zeros((num_points, 3))
+
+        for i in range(num_points):
+            # Get the indices of the vertices of the face
+            face_vertices = mesh.faces[face_index[i]]
+            # Get the vertex coordinates and their corresponding colors
+            vertices = mesh.vertices[face_vertices]
+            colors = vertex_colors[face_vertices]
+
+            # Compute barycentric coordinates
+            v0 = vertices[1] - vertices[0]
+            v1 = vertices[2] - vertices[0]
+            v2 = points[i] - vertices[0]
+            d00 = np.dot(v0, v0)
+            d01 = np.dot(v0, v1)
+            d11 = np.dot(v1, v1)
+            d20 = np.dot(v2, v0)
+            d21 = np.dot(v2, v1)
+            denom = d00 * d11 - d01 * d01
+            v = (d11 * d20 - d01 * d21) / denom
+            w = (d00 * d21 - d01 * d20) / denom
+            u = 1.0 - v - w
+
+            # Interpolate color using barycentric coordinates
+            sampled_colors[i] = u * colors[0] + v * colors[1] + w * colors[2]
+    except:
+        # set color to gray
+        sampled_colors = np.ones((num_points, 3)) * 0.5
+    positions = points
+    colors = sampled_colors
+    normals = sampled_normals
     positions = np.array(positions)
-    colors = np.array(colors_no_alpha)
+    colors = np.array(colors) / 255.
     normals = np.array(normals)
 
-    print("positions", positions.shape, "colors", colors.shape, "normals", normals.shape)
+   
+    # if len(positions) <= 1000:
+    #     print("not enought points, generating more")
+    #     # add random more points to make it 5000
+    #     num_pts_pad = 5000 - len(positions)
+ 
+    #     # We create random points inside the bounds of the synthetic Blender scenes
+    #     xyz = (np.random.random((num_pts_pad, 3)) * 0.1 - 0.05) + positions.mean(axis=0)
+    #     pad_color = np.random.random((num_pts_pad, 3)) / 255.0
+    #     pad_normals = np.zeros((num_pts_pad, 3))
+    #     positions = np.concatenate([positions, xyz], axis=0)
+    #     colors = np.concatenate([colors, pad_color], axis=0)
+    #     normals = np.concatenate([normals, pad_normals], axis=0)
 
+    # elif len(positions) > 20000:
+    #     print("too many points, sample less")
+    #     # sample 10000 points out of it
+    #     # idx = np.random.choice(len(positions), 10000, replace=False)
+    #     # positions = positions[idx]
+    #     # colors = colors[idx]
+    #     # normals = normals[idx]
+    #     # chooose 10000 points which close to origin
+    #     dist = np.linalg.norm(positions, axis=1)
+    #     idx = np.argsort(dist)
+    #     positions = positions[idx[:10000]]
+    #     colors = colors[idx[:10000]]
+    #     normals = normals[idx[:10000]]
+
+
+
+    # for out of view cases we need to ignore some
+    print("positions", positions.shape, "colors", colors.shape, "normals", normals.shape)
     storePly(path.replace('point_cloud.obj','points3d.ply'), positions, colors * 255)
 
     return BasicPointCloud(points=positions, colors=colors, normals=normals)

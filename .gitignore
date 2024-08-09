@@ -10,3 +10,7 @@ logs_train
 vectree/pruned_distilled
 vectree/output
 datasets/
+demo_gs/
+sbatch_log/
+scripts/shapenet_distribution_light_v0/
+scripts/shapenet_distribution_light_v1/
