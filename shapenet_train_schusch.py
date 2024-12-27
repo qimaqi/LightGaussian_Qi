@@ -31,10 +31,10 @@ parser.add_argument('--demo', action='store_true',
 args = parser.parse_args()
 
 raw_data_dir='/cluster/work/cvl/qimaqi/ws_dataset/shapenet/ShapeNetCore.v1'
-if args.above:
-    blender_renders_path = '/cluster/work/cvl/qimaqi/ws_dataset/shapenet/ShapeNetCore.v1/render/' # blender_render
-else:
-    blender_renders_path = '/cluster/work/cvl/qimaqi/ws_dataset/shapenet/ShapeNetCore.v1/blender_render/' # blender_render
+# if args.above:
+#     blender_renders_path = '/cluster/work/cvl/qimaqi/ws_dataset/shapenet/ShapeNetCore.v1/render/' # blender_render
+# else:
+blender_renders_path = '/cluster/work/cvl/qimaqi/ws_dataset/shapenet/ShapeNetCore.v1/blender_render/' # blender_render
 object_cat_path = '/cluster/work/cvl/qimaqi/3dv_gaussian/LightGaussian_Qi/scripts/filelists/'
 # task0: create all object and id list
 

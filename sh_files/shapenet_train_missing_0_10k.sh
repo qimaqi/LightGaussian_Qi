@@ -21,7 +21,7 @@ echo "Starting on:     ${JOB_START_TIME}"
 
 
 start_idx=0
-end_idx=10000
+end_idx=1
 
 python shapenet_train_schusch.py --start_idx=$start_idx --end_idx=$end_idx --debug
 # sbatch --output=sbatch_log/s5k_10k_gs_%j.out  --ntasks=12 --mem-per-cpu=4g   --time=4-0 --gpus=titan_rtx:1 shapenet_train_missing_5k_10k.sh

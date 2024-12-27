@@ -2,10 +2,10 @@
 #SBATCH --job-name=prune_gs
 #SBATCH --output=sbatch_log/prune_gs_40000_41000_%j.out
 
-
-module load gcc/9.3.0
+module load stack/2024-04
+module load gcc/8.5.0
 module load eth_proxy
-module load cuda/11.8.0
+module load cuda/11.3.1
 source /cluster/work/cvl/qimaqi/miniconda3/etc/profile.d/conda.sh 
 conda activate lightgaussian
 
